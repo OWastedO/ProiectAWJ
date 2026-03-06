@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Movie - CineVault</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+    <style>
+        /* Variabile globale pentru tema Dark */
+        :root {
+            --bg-body: #050505; --bg-card: #120e16;
+            --primary: #9d4edd; --text-main: #ffffff; --text-muted: #9ca3af;
+        }
+        body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; }
+
+        .page-header { text-align: center; margin-top: 40px; margin-bottom: 40px; }
+        .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 2px; text-shadow: 0 0 20px rgba(157, 78, 221, 0.4); }
+        .page-title span { color: var(--primary); }
+
+        /* Stiluri pentru formularul central */
+        .form-card {
+            background-color: var(--bg-card); border: 1px solid rgba(157, 78, 221, 0.3);
+            border-radius: 16px; padding: 40px; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            max-width: 700px; margin: 0 auto;
+        }
+
+        label { color: var(--text-muted); font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
+
+        .form-control {
+            background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; border-radius: 8px; padding: 10px 15px; height: auto;
+        }
+        .form-control:focus { background-color: rgba(255,255,255,0.08); border-color: var(--primary); color: white; }
+        select.form-control option { background-color: #120e16; color: white; }
+
+        .btn-save {
+            background-color: var(--primary); color: white; border: none;
+            padding: 12px; border-radius: 8px; font-weight: 700; width: 100%;
+            text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; transition: 0.3s;
+        }
+        .btn-save:hover { background-color: #7b2cbf; box-shadow: 0 0 20px rgba(157, 78, 221, 0.5); color:white; }
+        .btn-back { display: block; text-align: center; margin-top: 20px; color: var(--text-muted); text-decoration: none; }
+        .btn-back:hover { color: var(--primary); text-decoration: none; }
+
+        .rating-personal-group { display: none; transition: all 0.3s; text-align: center; margin-top: 20px; border: 1px solid rgba(157, 78, 221, 0.2); padding: 15px; border-radius: 8px; }
+        .rating-personal-group.visible { display: block; animation: fadeIn 0.5s; }
+
+        /* Stiluri pentru sistemul de rating cu stele */
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 2.5rem; color: #333; cursor: pointer; transition: 0.2s; padding: 0 5px; }
+        .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #9d4edd; text-shadow: 0 0 10px #9d4edd; }
+        .star-rating label::before { content: "\2605"; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container pb-5">
+    <div class="page-header">
+        <h1 class="page-title">CINE<span>VAULT</span> STUDIO</h1>
+        <p class="text-muted">Manage your collection</p>
+    </div>
+
+    <div class="form-card">
+        <form action="#" th:action="@{/salveaza}" th:object="${film}" method="POST">
+            <input type="hidden" th:field="*{id}" />
+
+            <div class="form-group">
+                <label>Movie Title</label>
+                <input type="text" th:field="*{titlu}" class="form-control" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label>Genre</label>
+                    <select th:field="*{gen}" class="form-control">
+                        <option value="Action">Action</option>
+                        <option value="Comedy">Comedy</option>
+                        <option value="Drama">Drama</option>
+                        <option value="Sci-Fi">Sci-Fi</option>
+                        <option value="Horror">Horror</option>
+                        <option value="Documentary">Documentary</option>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label>Year (1888 - 2026)</label>
+                    <input type="number" th:field="*{anAparitie}" class="form-control" min="1888" max="2026" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Poster Image URL</label>
+                <input type="text" th:field="*{imageUrl}" class="form-control" placeholder="https://...">
+            </div>
+
+            <hr style="background-color: rgba(255,255,255,0.1); margin: 30px 0;">
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label style="color: var(--primary);">Status</label>
+                    <select th:field="*{status}" id="statusSelect" class="form-control" onchange="toggleRatingField()">
+                        <option value="Nevazut">Unwatched</option>
+                        <option value="Wishlist">To Watch</option>
+                        <option value="Vazut">Watched</option>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label>IMDB Rating (Global)</label>
+                    <input type="number" th:field="*{imdbRating}" class="form-control" step="0.1" min="0" max="10">
+                </div>
+            </div>
+
+            <div class="rating-personal-group" id="personalRatingArea">
+                <label style="color: #e0aaff; display:block; margin-bottom:10px;">Your Personal Rating</label>
+                <div class="star-rating">
+                    <input type="radio" id="s10" th:field="*{rating}" value="10"/><label for="s10"></label>
+                    <input type="radio" id="s9" th:field="*{rating}" value="9"/><label for="s9"></label>
+                    <input type="radio" id="s8" th:field="*{rating}" value="8"/><label for="s8"></label>
+                    <input type="radio" id="s7" th:field="*{rating}" value="7"/><label for="s7"></label>
+                    <input type="radio" id="s6" th:field="*{rating}" value="6"/><label for="s6"></label>
+                    <input type="radio" id="s5" th:field="*{rating}" value="5"/><label for="s5"></label>
+                    <input type="radio" id="s4" th:field="*{rating}" value="4"/><label for="s4"></label>
+                    <input type="radio" id="s3" th:field="*{rating}" value="3"/><label for="s3"></label>
+                    <input type="radio" id="s2" th:field="*{rating}" value="2"/><label for="s2"></label>
+                    <input type="radio" id="s1" th:field="*{rating}" value="1"/><label for="s1"></label>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label>Short Description</label>
+                <textarea th:field="*{descriere}" class="form-control" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-save">Save Movie</button>
+            <a th:href="@{/}" class="btn-back">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Afiseaza sau ascunde campul de rating in functie de statusul selectat
+    function toggleRatingField() {
+        const status = document.getElementById('statusSelect').value;
+        const ratingArea = document.getElementById('personalRatingArea');
+        if (status === 'Vazut') {
+            ratingArea.classList.add('visible');
+        } else {
+            ratingArea.classList.remove('visible');
+        }
+    }
+    document.addEventListener("DOMContentLoaded", function() { toggleRatingField(); });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My List - CineVault</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+    <style>
+        /* Variabile CSS globale */
+        :root {
+            --bg-body: #050505; --bg-card: #120e16;
+            --primary: #9d4edd; --text-main: #ffffff;
+            --glass: rgba(10, 5, 10, 0.95);
+        }
+        body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; }
+
+        /* Bara de navigare */
+        .navbar { background: var(--glass); backdrop-filter: blur(20px); padding: 15px 50px; border-bottom: 1px solid rgba(157, 78, 221, 0.15); }
+        .navbar-brand { color: var(--text-main) !important; font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 2px; padding-top: 5px; }
+        .navbar-brand span { color: var(--primary); text-shadow: 0 0 15px rgba(157, 78, 221, 0.6); }
+        .nav-link { color: #9ca3af !important; font-weight: 500; margin-left: 25px; transition: 0.3s; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;}
+        .nav-link:hover, .active .nav-link { color: var(--primary) !important; }
+
+        /* Titlu pagina */
+        h2 {
+            border-left: 5px solid var(--primary); padding-left: 15px;
+            margin-bottom: 30px; font-weight: 700; font-family: 'Inter', sans-serif;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* Carduri filme (Grid) - Modificare scale */
+        .movie-card {
+            background-color: transparent; width: 220px; margin-bottom: 30px;
+            border-radius: 8px; transition: 0.3s; position: relative;
+        }
+        /* Hover default marit (1.1) */
+        .movie-card:hover { transform: translateY(-10px) scale(1.1); z-index: 10; }
+
+        /* Stare Expandata (1.25) */
+        .movie-card.expanded {
+            transform: scale(1.25) !important; z-index: 100 !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            background: #1a1a1a; /* Background pentru lizibilitate */
+            padding: 10px; border-radius: 10px;
+        }
+
+        .poster-wrapper {
+            position: relative; width: 100%; height: 330px; border-radius: 8px; overflow: hidden;
+            background-color: #000; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);
+        }
+        .movie-card:hover .poster-wrapper { box-shadow: 0 0 20px rgba(157, 78, 221, 0.4); border-color: var(--primary); }
+
+        .poster-fallback {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: #111; z-index: 1;
+        }
+        .fallback-logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: #333; line-height: 0.9; text-align: center; }
+        .movie-poster { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+
+        /* Stil descriere */
+        .movie-desc {
+            display: none; font-size: 0.75rem; color: #ddd; margin: 10px 0; line-height: 1.2;
+        }
+        .movie-card.expanded .movie-desc { display: block; animation: fadeIn 0.5s; }
+
+        /* Butoane Actiuni */
+        .btn-glow {
+            background-color: var(--primary); color: white; border: none; padding: 8px; border-radius: 6px; width: 100%;
+            margin-top: 10px; transition: 0.3s; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;
+        }
+        .btn-glow:hover { background-color: #7b2cbf; box-shadow: 0 0 15px rgba(157, 78, 221, 0.5); color: white; }
+
+        .btn-out {
+            background: transparent; color: #9ca3af; border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px; border-radius: 6px; width: 100%; margin-top: 5px; transition: 0.3s; font-size: 0.8rem;
+        }
+        .btn-out:hover { border-color: #ff4d4d; color: #ff4d4d; background: rgba(255, 77, 77, 0.1); }
+
+        .btn-info-sm {
+            background: transparent; color: #ccc; border: none; font-size: 0.9rem; margin-top: 5px; cursor: pointer;
+        }
+        .btn-info-sm:hover { color: white; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Stiluri Modal */
+        .modal-content { background-color: #120e16; color: white; border: 1px solid var(--primary); box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        .modal-header { border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .modal-footer { border-top: 1px solid rgba(255,255,255,0.1); }
+        .close { color: white; text-shadow: none; opacity: 1; }
+        .btn-cancel { background: transparent; border: 1px solid #555; color: #ccc; border-radius: 20px; padding: 5px 20px; }
+        .btn-cancel:hover { border-color: white; color: white; }
+
+        /* Modal Stergere Specific */
+        .modal-delete-title { color: #ff4d4d; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 1.5rem; }
+        .btn-confirm-delete { background: #ff4d4d; color: white; border: none; font-weight: 600; border-radius: 20px; padding: 5px 20px; }
+        .btn-confirm-delete:hover { background: #cc0000; box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); color:white; }
+
+        /* Sistem Rating */
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 2rem; color: #333; cursor: pointer; transition: 0.2s; }
+        .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #9d4edd; text-shadow: 0 0 10px #9d4edd; }
+        .star-rating label::before { content: "\2605"; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="/">CINE<span>VAULT</span></a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+            <li class="nav-item active"><a class="nav-link" href="/wishlist">My List</a></li>
+            <li class="nav-item"><a class="nav-link" href="/vazute">Movies Watched</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <h2>My Watchlist</h2>
+    <div class="row mt-4">
+        <div class="col-auto" th:each="film : ${wishlistFilms}">
+            <div class="movie-card" onmouseleave="resetCard(this)">
+                <div class="poster-wrapper">
+                    <div class="poster-fallback"><div class="fallback-logo">CINE<br><span>VAULT</span></div></div>
+                    <img th:src="${film.hasImage() ? film.imageUrl : '#'}"
+                         onerror="this.style.opacity='0'"
+                         class="movie-poster">
+                </div>
+
+                <div class="p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-truncate font-weight-bold" style="max-width: 150px;" th:text="${film.titlu}">Title</div>
+                        <button type="button" class="btn-info-sm" onclick="toggleCardDetails(this)"><i class="fas fa-info-circle"></i></button>
+                    </div>
+
+                    <small class="text-muted" th:text="${film.gen}">Genre</small>
+
+                    <div class="movie-desc" th:text="${film.descriere}"></div>
+
+                    <button type="button" class="btn btn-glow"
+                            th:data-id="${film.id}" th:data-title="${film.titlu}" onclick="openRatingModal(this)">
+                        <i class="fas fa-check"></i> Seen It
+                    </button>
+
+                    <button class="btn btn-out" th:onclick="'openRemoveModal(\'/sterge/' + ${film.id} + '\')'">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 text-center mt-5 text-muted" th:if="${#lists.isEmpty(wishlistFilms)}">
+            <h4>Your list is empty.</h4>
+            <p>Go to <a href="/" style="color:var(--primary)">Home</a> to add movies.</p>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="ratingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rate: <span id="modalFilmTitle" style="color: var(--primary)"></span></h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form th:action="@{/actualizeazaRating}" method="POST">
+                <div class="modal-body text-center">
+                    <input type="hidden" name="id" id="modalFilmId" />
+                    <div class="star-rating">
+                        <input type="radio" id="s10" name="rating" value="10"/><label for="s10"></label>
+                        <input type="radio" id="s9" name="rating" value="9"/><label for="s9"></label>
+                        <input type="radio" id="s8" name="rating" value="8"/><label for="s8"></label>
+                        <input type="radio" id="s7" name="rating" value="7"/><label for="s7"></label>
+                        <input type="radio" id="s6" name="rating" value="6"/><label for="s6"></label>
+                        <input type="radio" id="s5" name="rating" value="5"/><label for="s5"></label>
+                        <input type="radio" id="s4" name="rating" value="4"/><label for="s4"></label>
+                        <input type="radio" id="s3" name="rating" value="3"/><label for="s3"></label>
+                        <input type="radio" id="s2" name="rating" value="2"/><label for="s2"></label>
+                        <input type="radio" id="s1" name="rating" value="1"/><label for="s1"></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-glow">Save Rating</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="removeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: 1px solid #ff4d4d;">
+            <div class="modal-header">
+                <h5 class="modal-title modal-delete-title"><i class="fas fa-trash-alt"></i> Remove from List</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <p style="font-size: 1.1rem;">Remove this movie from your Watchlist?</p>
+                <p class="text-muted small">It will remain in the database as "Unwatched".</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-cancel" data-dismiss="modal">Cancel</button>
+                <a id="btnConfirmRemove" href="#" class="btn btn-confirm-delete">Yes, Remove</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function openRatingModal(element) {
+        var id = element.getAttribute('data-id');
+        var title = element.getAttribute('data-title');
+        document.getElementById('modalFilmId').value = id;
+        document.getElementById('modalFilmTitle').innerText = title;
+        $('#ratingModal').modal('show');
+    }
+
+    // Functie pentru expandarea cardului (Click Info)
+    function toggleCardDetails(btn) {
+        event.stopPropagation();
+        var card = btn.closest('.movie-card');
+
+        if (card.classList.contains('expanded')) {
+            card.classList.remove('expanded');
+        } else {
+            document.querySelectorAll('.movie-card.expanded').forEach(function(c) {
+                c.classList.remove('expanded');
+            });
+            card.classList.add('expanded');
+        }
+    }
+
+    // Resetare card la mouse leave
+    function resetCard(card) {
+        if (card.classList.contains('expanded')) {
+            card.classList.remove('expanded');
+        }
+    }
+
+    function openRemoveModal(url) {
+        document.getElementById('btnConfirmRemove').href = url;
+        $('#removeModal').modal('show');
+    }
+</script>
+</body>
+</html>

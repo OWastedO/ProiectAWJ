@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Movies Watched - CineVault</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Variabile CSS globale */
+        :root {
+            --bg-body: #050505; --bg-card: #120e16;
+            --primary: #9d4edd; --text-main: #ffffff; --text-muted: #9ca3af;
+            --glass: rgba(10, 5, 10, 0.95);
+        }
+        body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; }
+
+        /* Bara de navigare */
+        .navbar { background: var(--glass); backdrop-filter: blur(20px); padding: 15px 50px; border-bottom: 1px solid rgba(157, 78, 221, 0.15); }
+        .navbar-brand { color: var(--text-main) !important; font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 2px; padding-top: 5px; }
+        .navbar-brand span { color: var(--primary); text-shadow: 0 0 15px rgba(157, 78, 221, 0.6); }
+        .nav-link { color: #9ca3af !important; font-weight: 500; margin-left: 25px; transition: 0.3s; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;}
+        .nav-link:hover, .active .nav-link { color: var(--primary) !important; }
+
+        /* Stiluri pentru Dashboard si Grafice */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-bottom: 40px; }
+
+        .chart-card {
+            background-color: var(--bg-card); border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(157, 78, 221, 0.2); box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            height: 100%;
+        }
+        h5 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; color: var(--primary); font-size: 1.5rem; margin-bottom: 20px; text-align: center; }
+
+        /* Bara de Filtrare */
+        .filter-bar {
+            background: var(--bg-card); padding: 15px 25px; border-radius: 50px;
+            margin-bottom: 30px; display: flex; gap: 15px; align-items: center;
+            border: 1px solid rgba(255,255,255,0.1); justify-content: space-between;
+        }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-select {
+            background: #050505; color: white; border: 1px solid #333;
+            border-radius: 20px; padding: 5px 15px; height: 35px; outline: none;
+        }
+        .filter-select:focus { border-color: var(--primary); }
+        .btn-apply { background: var(--primary); color: white; border: none; border-radius: 20px; padding: 5px 20px; font-weight: 600; }
+        .btn-apply:hover { background: #7b2cbf; color: white; }
+        .btn-reset { color: #9ca3af; text-decoration: none; font-size: 0.9rem; }
+        .btn-reset:hover { color: white; }
+
+        /* Tabel filme */
+        .table-container {
+            background-color: var(--bg-card); border-radius: 12px; padding: 0;
+            border: 1px solid rgba(255,255,255,0.05); overflow: hidden;
+        }
+        .table-dark { background: transparent; color: var(--text-muted); margin-bottom: 0; }
+        .table-dark th {
+            border-top: none; border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;
+            padding: 20px;
+        }
+        .table-dark td { border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; padding: 15px 20px; }
+        .table-hover tbody tr:hover { background-color: rgba(157, 78, 221, 0.05); color: white; }
+
+        .mini-poster { width: 40px; height: 60px; border-radius: 4px; object-fit: cover; margin-right: 15px; }
+        .rating-star { color: #f5c518; margin-right: 5px; }
+
+        /* Buton stergere */
+        .btn-trash {
+            background: transparent; border: none; color: #555; transition: 0.3s;
+            width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-trash:hover { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; }
+
+        /* Modal Dark */
+        .modal-content { background-color: #120e16; color: white; border: 1px solid var(--primary); box-shadow: 0 0 50px rgba(0,0,0,0.8); }
+        .modal-header { border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .modal-footer { border-top: 1px solid rgba(255,255,255,0.1); }
+        .close { color: white; text-shadow: none; opacity: 1; }
+        .btn-cancel { background: transparent; border: 1px solid #555; color: #ccc; border-radius: 20px; padding: 5px 20px; }
+        .btn-cancel:hover { border-color: white; color: white; }
+        .btn-confirm-delete { background: #ff4d4d; color: white; border: none; font-weight: 600; border-radius: 20px; padding: 5px 20px; }
+        .btn-confirm-delete:hover { background: #cc0000; box-shadow: 0 0 15px rgba(255, 77, 77, 0.4); color:white; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="/">CINE<span>VAULT</span></a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="/wishlist">My List</a></li>
+            <li class="nav-item active"><a class="nav-link" href="/vazute">Movies Watched</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 3rem; margin-bottom: 30px;">
+        MOVIES <span style="color:var(--primary)">WATCHED</span>
+    </h2>
+
+    <div class="dashboard-grid">
+        <div class="chart-card">
+            <h5>Quantity by Genre</h5>
+            <canvas id="chartCount"></canvas>
+        </div>
+        <div class="chart-card">
+            <h5>Your Average Rating</h5>
+            <canvas id="chartAvg"></canvas>
+        </div>
+    </div>
+
+    <form action="/vazute" method="get">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <span style="color:#aaa; font-size:0.9rem;">Genre:</span>
+                <select name="gen" class="filter-select">
+                    <option value="Toate" th:selected="${selectedGen == 'Toate'}">All Genres</option>
+                    <option value="Action" th:selected="${selectedGen == 'Action'}">Action</option>
+                    <option value="Comedy" th:selected="${selectedGen == 'Comedy'}">Comedy</option>
+                    <option value="Drama" th:selected="${selectedGen == 'Drama'}">Drama</option>
+                    <option value="Sci-Fi" th:selected="${selectedGen == 'Sci-Fi'}">Sci-Fi</option>
+                    <option value="Horror" th:selected="${selectedGen == 'Horror'}">Horror</option>
+                    <option value="Documentary" th:selected="${selectedGen == 'Documentary'}">Documentary</option>
+                </select>
+
+                <span style="color:#aaa; font-size:0.9rem; margin-left:10px;">Sort:</span>
+                <select name="sort" class="filter-select">
+                    <option value="Default" th:selected="${selectedSort == 'Default'}">Default</option>
+                    <option value="DESC" th:selected="${selectedSort == 'DESC'}">Rating: High to Low</option>
+                    <option value="ASC" th:selected="${selectedSort == 'ASC'}">Rating: Low to High</option>
+                </select>
+
+                <button type="submit" class="btn-apply">Apply</button>
+            </div>
+            <a href="/vazute" class="btn-reset">Reset Filters</a>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table class="table table-dark table-hover mb-0">
+            <thead>
+            <tr>
+                <th style="width: 60%; padding-left: 30px;">Movie Details</th>
+                <th style="width: 20%">Your Rating</th>
+                <th style="width: 20%; text-align: right; padding-right: 30px;">Remove</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="film : ${watchedFilms}">
+                <td style="padding-left: 30px;">
+                    <div class="d-flex align-items-center">
+                        <img th:src="${film.hasImage() ? film.imageUrl : 'https://placehold.co/40x60/120e16/9d4edd?text=NO'}" class="mini-poster">
+                        <div>
+                            <div th:text="${film.titlu}" style="font-weight: 600; color: white;">Title</div>
+                            <small style="color: var(--primary);" th:text="${film.gen}">Gen</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                        <span style="font-weight: bold; font-size: 1.1rem;">
+                            <i class="fas fa-star rating-star"></i>
+                            <span th:text="${film.rating}"></span>
+                        </span>
+                    <span style="color:#555; font-size:0.8rem;">/10</span>
+                </td>
+                <td style="text-align: right; padding-right: 30px;">
+                    <button class="btn-trash ml-auto" title="Remove from history"
+                            th:onclick="'openDeleteModal(\'/reseteazaStatus/' + ${film.id} + '\')'">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(watchedFilms)}">
+                <td colspan="3" class="text-center py-5">
+                    <span style="color:#555">No movies found in history.</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: 1px solid #ff4d4d;">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color:#ff4d4d; font-family:'Bebas Neue', sans-serif; letter-spacing:1px;">
+                    <i class="fas fa-exclamation-triangle"></i> Remove Entry
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <p style="font-size: 1.1rem;">Remove this movie from your Watched History?</p>
+                <p class="text-muted small">Your rating will be lost.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-cancel" data-dismiss="modal">Cancel</button>
+                <a id="btnConfirmDelete" href="#" class="btn btn-confirm-delete">Yes, Remove</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // Date pentru grafice venite din Controller
+    var labels = [[${chartLabels}]];
+    var dataCount = [[${chartCount}]];
+    var dataAvg = [[${chartAvg}]];
+
+    // Initializare Chart.js - Pie Chart
+    if(document.getElementById('chartCount')) {
+        new Chart(document.getElementById('chartCount'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataCount,
+                    backgroundColor: ['#9d4edd', '#7b2cbf', '#e0aaff', '#5a189a', '#3c096c', '#240046'],
+                    borderColor: '#120e16', borderWidth: 2
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'right', labels: { color: '#ccc' } } },
+                cutout: '60%'
+            }
+        });
+    }
+
+    // Initializare Chart.js - Bar Chart
+    if(document.getElementById('chartAvg')) {
+        new Chart(document.getElementById('chartAvg'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Avg Rating',
+                    data: dataAvg,
+                    backgroundColor: '#9d4edd',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 10, grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                    x: { grid: { display: false }, ticks: { color: '#aaa' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function openDeleteModal(url) {
+        document.getElementById('btnConfirmDelete').href = url;
+        $('#deleteModal').modal('show');
+    }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
